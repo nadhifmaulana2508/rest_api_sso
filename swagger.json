@@ -1,0 +1,406 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SSO API BKK",
+    "version": "1.0.0",
+    "description": "SSO API untuk SIMPEG, MONBIS, dll (JWT Based)"
+  },
+  "servers": [
+    {
+      "url": "http://localhost/rest_api_sso",
+      "description": "Local Dev"
+    },
+    {
+      "url": "https://apisso.bkkjateng.co.id",
+      "description": "Production SSO"
+    }
+  ],
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "summary": "Login menggunakan id_peg + app",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id_peg", "password", "app"],
+                "properties": {
+                  "id_peg": {
+                    "type": "string",
+                    "example": "102-119"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "bkkjtg123"
+                  },
+                  "app": {
+                    "type": "string",
+                    "example": "monbis",
+                    "description": "Nama aplikasi: monbis, simpeg, ims, dll"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login berhasil",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": 200,
+                  "message": "Login berhasil",
+                  "data": {
+                    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User tidak ditemukan / password salah"
+          },
+          "403": {
+            "description": "Tidak punya akses ke aplikasi"
+          }
+        }
+      }
+    },
+    "/api/auth/whoami": {
+      "get": {
+        "summary": "Ambil data user dari token (Bearer)",
+        "tags": ["Auth"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Data user",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": 200,
+                  "message": "OK",
+                  "data": {
+                    "employee_id": "102-119",
+                    "full_name": "Nama Pegawai",
+                    "branch_name": "Kantor Cabang",
+                    "job_position": "Staff"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token tidak valid / expired"
+          }
+        }
+      },
+      "post": {
+        "summary": "Ambil data user dari token (Body JSON)",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token"],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Data user"
+          },
+          "401": {
+            "description": "Token tidak valid / expired"
+          }
+        }
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "summary": "Ganti Password (Perlu Login)",
+        "tags": ["Profile"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["old_password", "new_password"],
+                "properties": {
+                  "old_password": {
+                    "type": "string",
+                    "example": "bkkjtg123"
+                  },
+                  "new_password": {
+                    "type": "string",
+                    "example": "BkkBaru2026!"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password berhasil diubah"
+          },
+          "400": {
+            "description": "Password lama salah / input tidak lengkap"
+          },
+          "401": {
+            "description": "Token tidak valid / expired"
+          }
+        }
+      }
+    },
+    "/api/auth/update-profile": {
+      "post": {
+        "summary": "Update Email atau Nomor Telp (Perlu Login)",
+        "tags": ["Profile"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "pegawai_bkk@gmail.com"
+                  },
+                  "telp": {
+                    "type": "string",
+                    "example": "081234567890"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Data Profil berhasil diperbarui!"
+          },
+          "400": {
+            "description": "Minimal kirim email atau telp"
+          },
+          "401": {
+            "description": "Token tidak valid / expired"
+          }
+        }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "summary": "Kirim OTP Reset Password ke Email",
+        "tags": ["Reset Password"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "pegawai_bkk@gmail.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Kode OTP berhasil dikirim, mengembalikan otp_token sementara"
+          },
+          "400": {
+            "description": "Email wajib diisi"
+          },
+          "404": {
+            "description": "Email tidak terdaftar di sistem"
+          },
+          "500": {
+            "description": "Gagal mengirim email OTP (Error Mailer)"
+          }
+        }
+      }
+    },
+    "/api/auth/verify-otp": {
+      "post": {
+        "summary": "Verifikasi Kode OTP dari Email",
+        "tags": ["Reset Password"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["otp_token", "otp_code"],
+                "properties": {
+                  "otp_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIs...",
+                    "description": "Token yang didapat dari response /forgot-password"
+                  },
+                  "otp_code": {
+                    "type": "string",
+                    "example": "123456",
+                    "description": "6 digit kode OTP dari email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP Valid, mengembalikan reset_token"
+          },
+          "400": {
+            "description": "Kode OTP salah"
+          },
+          "401": {
+            "description": "Sesi OTP tidak valid atau sudah kadaluarsa (lebih dari 5 menit)"
+          }
+        }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "summary": "Aksi Ubah Password via Reset Token",
+        "tags": ["Reset Password"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reset_token", "new_password"],
+                "properties": {
+                  "reset_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIs...",
+                    "description": "Token yang didapat dari response /verify-otp"
+                  },
+                  "new_password": {
+                    "type": "string",
+                    "example": "BkkBaru2026!"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password berhasil di-reset"
+          },
+          "400": {
+            "description": "Input tidak lengkap"
+          },
+          "401": {
+            "description": "Sesi reset password tidak valid atau sudah kadaluarsa (lebih dari 15 menit)"
+          }
+        }
+      }
+    },
+    "/api/ao/list": {
+      "get": {
+        "summary": "Ambil daftar AO berdasarkan tipe dan kode cabang",
+        "tags": ["AO"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tipe",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["dana", "kredit", "remedial"]
+            },
+            "description": "Tipe Account Officer: dana, kredit, atau remedial"
+          },
+          {
+            "in": "query",
+            "name": "kode_cabang",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Kode Cabang/Kantor (contoh: 000, 001, dll)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Berhasil mengambil data AO",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": 200,
+                  "message": "Berhasil mengambil data AO DANA",
+                  "data": [
+                    {
+                      "employee_id": "123-456",
+                      "full_name": "Syaifun Nadhif Maulana",
+                      "kode_cabang": "000",
+                      "branch_name": "Kantor Pusat",
+                      "job_position": "AO Dana"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parameter 'tipe' atau 'kode_cabang' tidak valid/kosong"
+          },
+          "401": {
+            "description": "Token tidak valid / expired"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
