@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/config/bootstrap.php';
+require_once __DIR__.'/middleware/signature.php';
+[$user,$profile,$security]=require_signature_ready($pdo);
+$st=$pdo->prepare("SELECT * FROM signature_documents WHERE id_peg=:id ORDER BY id DESC LIMIT 20");
+$st->execute(['id'=>$user['employee_id']]);$docs=$st->fetchAll();
+$docId='DEMO-'.date('Ymd-His');
+?>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dokumen</title><link rel="stylesheet" href="<?=e(base_url('assets/app.css'))?>"><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script></head><body><div class="app"><?php require __DIR__.'/partials/header.php';?><main class="page">
+<div class="grid"><section class="card hero"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><span class="badge">DOKUMEN DUMMY</span><h2 style="margin-top:12px">Nota Persetujuan Internal</h2></div><button class="btn btn-primary" id="openSign">Tanda Tangani</button></div>
+<div class="card" style="box-shadow:none;margin-top:14px"><p><b>Nomor:</b> <?=e($docId)?></p><p>Dokumen dummy ini digunakan untuk menunjukkan proses otorisasi PIN, pencatatan hash dokumen, audit trail, dan QR verifikasi.</p><p><b>Penandatangan:</b> <?=e($user['full_name']??'-')?><br><b>Jabatan:</b> <?=e($user['job_position']??'-')?></p><div id="result" class="result" style="display:none"><div class="result-box"><div><div class="muted">TTD Pegawai</div><img id="sigImg" class="signature-img"></div></div><div class="result-box"><div><div class="muted">QR Verifikasi</div><div class="qr-holder"><div id="qr"></div><div class="qr-logo">BKK</div></div></div></div></div><div id="hashBox" class="code" style="display:none;margin-top:12px"></div></div></section>
+<aside class="card side"><h3>Flow</h3><p class="muted">1. Klik Tanda Tangani<br>2. Masukkan PIN<br>3. Server verifikasi PIN<br>4. Create SHA-256 & token<br>5. Return TTD + QR</p></aside>
+<section class="card full"><h3>Riwayat Dokumen</h3><div class="table-wrap"><table class="table"><thead><tr><th>Dokumen</th><th>Aplikasi</th><th>Waktu</th></tr></thead><tbody><?php if(!$docs):?><tr><td colspan="3" class="muted">Belum ada dokumen.</td></tr><?php endif;?><?php foreach($docs as $d):?><tr><td><?=e($d['document_name'])?><br><small class="muted"><?=e($d['document_id'])?></small></td><td><?=e($d['application'])?></td><td><?=e($d['signed_at'])?></td></tr><?php endforeach;?></tbody></table></div></section></div></main></div>
+<div class="modal" id="modal"><div class="modal-card"><h3>Verifikasi PIN TTD</h3><p class="muted">Masukkan PIN 6 digit untuk menyetujui dokumen ini.</p><input id="pin" class="input pin" type="password" inputmode="numeric" maxlength="6" placeholder="••••••"><div id="msg"></div><div class="actions" style="margin-top:14px"><button class="btn btn-soft" id="cancel">Batal</button><button class="btn btn-primary" id="doSign">Verifikasi & TTD</button></div></div></div>
+<script>
+const modal=document.getElementById('modal'),pin=document.getElementById('pin'),msg=document.getElementById('msg');
+openSign.onclick=()=>{modal.classList.add('show');pin.focus()};cancel.onclick=()=>modal.classList.remove('show');
+doSign.onclick=async()=>{doSign.disabled=true;msg.innerHTML='';try{const r=await fetch('<?=e(base_url('api/sign.php'))?>',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':'<?=e(csrf_token())?>'},body:JSON.stringify({pin:pin.value,document_id:'<?=e($docId)?>',document_name:'Nota Persetujuan Internal',application:'TTD IN BKK'})});const j=await r.json();if(!r.ok||!j.success)throw new Error(j.message||'Gagal');modal.classList.remove('show');document.getElementById('result').style.display='grid';sigImg.src=j.data.signature_url;hashBox.style.display='block';hashBox.textContent='SHA-256: '+j.data.document_hash;qr.innerHTML='';new QRCode(qr,{text:j.data.verification_url,width:150,height:150})}catch(e){msg.innerHTML='<div class="alert alert-error">'+e.message+'</div>'}finally{doSign.disabled=false}};
+</script></body></html>
